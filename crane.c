@@ -75,7 +75,7 @@ Function:
 // Sub-GHz
 #define SUBGHZ_CH	24
 #define SUBGHZ_PANID	0xABCD
-#define SUBGHZ_TXADDR	0x87A4
+#define SUBGHZ_TXADDR	0x8E43
 uint8_t rx_data[256];
 uint8_t tx_data[256];
 SUBGHZ_STATUS rx;
@@ -174,8 +174,22 @@ FLY_STATE func_normal(void)
 	}
 	else
 	{
+
+		float kx022_dat[3];
 		update_motor_data();		//update motor data
 		// センサーデータ取得
+		kx022.get_val(kx022_dat);
+		// Send Sensor Name and dimention of data
+		Print.init(tx_data,sizeof(tx_data));
+		Print.p("SensorData,");
+		Print.f(kx022_dat[0],1);
+		Print.p(",");
+		Print.f(kx022_dat[1],1);
+		Print.p(",");
+		Print.f(kx022_dat[2],1);
+		Print.p(",");
+		SubGHz.send(SUBGHZ_PANID,SUBGHZ_TXADDR, (unsigned char *)&tx_data, Print.len(),NULL);
+
 		// センサーデータの送信
 		if(fly_param.motor[2] == 0)
 		{
@@ -569,6 +583,10 @@ void setup(void)
 		while(1){ }
 	}
 	
+	// ########### init sensor ###########
+	Wire.begin();
+	kx022.init(KX022_DEVICE_ADDRESS_1E);
+	
 	// ########### initializing Graph tool in Raspberry Pi ############
 	// Reset parameters
 	Print.init(tx_data,sizeof(tx_data));
@@ -578,7 +596,7 @@ void setup(void)
 
 	// Send Sensor Name and dimention of data
 	Print.init(tx_data,sizeof(tx_data));
-	Print.p("SensorList,Gyro,3,");
+	Print.p("SensorList,KX022,3,");
 	SubGHz.send(SUBGHZ_PANID,SUBGHZ_TXADDR, (unsigned char *)&tx_data, Print.len(),NULL);
 	
 	// ########### Change Sub-GHz mode ############
@@ -603,6 +621,7 @@ void setup(void)
 	fly_param.led.cycle = 0;
 	fly_param.led.sequence = NULL;
 	fly_param.led.sequence_time = NULL;
+	
 	
 	// ########### init state ###########
 	fly_param.func_mode = FLY_STATE_DETECTING_ZERO;
