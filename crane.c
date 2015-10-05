@@ -67,15 +67,17 @@ Function:
   mode=-1:  connection error. need DC motor=0 for return normal mode
 ############################################################################# */
 
-#define DEBUG
+//#define DEBUG
 // #define SENSOR_LOGGER
 
+#include <mcu.h>
 #include "crane.h"
+#include "wdt.h"
 //#################### Definitions ##################################
 // Sub-GHz
-#define SUBGHZ_CH	36
+#define SUBGHZ_CH	24
 #define SUBGHZ_PANID	0xABCD
-#define SUBGHZ_TXADDR	0x87A4
+#define SUBGHZ_TXADDR	0xac54
 uint8_t rx_data[256];
 uint8_t tx_data[256];
 SUBGHZ_STATUS rx;
@@ -151,7 +153,8 @@ FLY_STATE func_waiting_zero(void)
 			fly_param.motor[2] = 0;
 			fly_param.motor[3] = 0;
 			update_motor_data();
-			digitalWrite(BLUE_LED,HIGH), digitalWrite(ORANGE_LED,LOW);
+//			digitalWrite(BLUE_LED,HIGH), digitalWrite(ORANGE_LED,LOW);
+			P56D=1,P51D=0;
 		}
 	}
 	return mode;
@@ -174,9 +177,25 @@ FLY_STATE func_normal(void)
 	}
 	else
 	{
+		float acc[3];				// sensor data;
+		
 		update_motor_data();		//update motor data
 		// センサーデータ取得
+		kx022.get_val(acc);
 		// センサーデータの送信
+		Print.init(tx_data,sizeof(tx_data));
+		Print.p("SensorData,");
+		Print.f(acc[0],1);
+		Print.p(",");
+		Print.f(acc[1],1);
+		Print.p(",");
+		Print.f(acc[2],1);
+		Print.p(",");
+//		digitalWrite(BLUE_LED,LOW);
+		P56D=0;
+		SubGHz.send(SUBGHZ_PANID,SUBGHZ_TXADDR, (unsigned char *)&tx_data, Print.len(),NULL);
+//		digitalWrite(BLUE_LED,HIGH);
+		P56D=1;
 		if(fly_param.motor[2] == 0)
 		{
 			if(zero_detect == false)
@@ -220,8 +239,27 @@ FLY_STATE func_motor_callibration(void)
 			func_normal();
 		}
 		{							// calibration mode
+			float acc[3];				// sensor data;
+			
 			button_func(button_check((unsigned char)fly_param.motor[3]));
+			
 			update_motor_data();
+			// センサーデータ取得
+			kx022.get_val(acc);
+			// センサーデータの送信
+			Print.init(tx_data,sizeof(tx_data));
+			Print.p("SensorData,");
+			Print.f(acc[0],1);
+			Print.p(",");
+			Print.f(acc[1],1);
+			Print.p(",");
+			Print.f(acc[2],1);
+			Print.p(",");
+	//		digitalWrite(BLUE_LED,LOW);
+	//		P56D=0;
+			SubGHz.send(SUBGHZ_PANID,SUBGHZ_TXADDR, (unsigned char *)&tx_data, Print.len(),NULL);
+	//		digitalWrite(BLUE_LED,HIGH);
+	//		P56D=1;
 		}
 	}
 	else
@@ -335,16 +373,20 @@ void led_update(uint8_t value)
 	switch(value)
 	{
 	case LED_OFF:
-		digitalWrite(BLUE_LED, HIGH),digitalWrite(ORANGE_LED, HIGH); 
+//		digitalWrite(BLUE_LED, HIGH),digitalWrite(ORANGE_LED, HIGH); 
+		P56D=1,P51D=1;
 		break;
 	case BLUE_ON:
-		digitalWrite(BLUE_LED, LOW),digitalWrite(ORANGE_LED, HIGH); 
+//		digitalWrite(BLUE_LED, LOW),digitalWrite(ORANGE_LED, HIGH); 
+		P56D=0,P51D=1;
 		break;
 	case ORANGE_ON:
-		digitalWrite(BLUE_LED, HIGH),digitalWrite(ORANGE_LED, LOW); 
+//		digitalWrite(BLUE_LED, HIGH),digitalWrite(ORANGE_LED, LOW); 
+		P56D=1,P51D=0;
 		break;
 	case LED_BOTH:
-		digitalWrite(BLUE_LED, LOW),digitalWrite(ORANGE_LED, LOW); 
+//		digitalWrite(BLUE_LED, LOW),digitalWrite(ORANGE_LED, LOW); 
+		P56D=0,P51D=0;
 		break;
 	default:
 		break;
@@ -496,26 +538,6 @@ void setup(void)
 	digitalWrite(BLUE_LED,LOW);
 	digitalWrite(ORANGE_LED,LOW);
 	
-#ifdef SENSOR_LOGGER
-	// ########### initializing Gyro ############
-	// I2C Initializing
-	Wire.begin();
-	// Gyro Test
-	MPU9250SelfTest(SelfTest); // Start by performing self test and reporting values
-	Serial.print("x-axis self test: acceleration trim within : "); Serial.print_double((double)SelfTest[0],1); Serial.println("% of factory value");
-	Serial.print("y-axis self test: acceleration trim within : "); Serial.print_double((double)SelfTest[1],1); Serial.println("% of factory value");
-	Serial.print("z-axis self test: acceleration trim within : "); Serial.print_double((double)SelfTest[2],1); Serial.println("% of factory value");
-	Serial.print("x-axis self test: gyration trim within : "); Serial.print_double((double)SelfTest[3],1); Serial.println("% of factory value");
-	Serial.print("y-axis self test: gyration trim within 	: "); Serial.print_double((double)SelfTest[4],1); Serial.println("% of factory value");
-	Serial.print("z-axis self test: gyration trim within : "); Serial.print_double((double)SelfTest[5],1); Serial.println("% of factory value");
-	delay(5000);
-	
-	calibrateMPU9250(gyroBias, accelBias); // Calibrate gyro and accelerometers, load biases in bias registers
-	
-	delay(1000); 
-	
-	initMPU9250(); 
-#endif
 	// ########### initializing motor ############
 	init_servo_offset();
 	
@@ -569,18 +591,30 @@ void setup(void)
 		while(1){ }
 	}
 	
-	// ########### initializing Graph tool in Raspberry Pi ############
+	// ########### initializing Sensor and Graph tool in Raspberry Pi ############
+	Wire.begin();
+	kx022.init(KX022_DEVICE_ADDRESS_1E);
 	// Reset parameters
 	Print.init(tx_data,sizeof(tx_data));
 	Print.p("SensorReset,");
+//	digitalWrite(BLUE_LED,LOW);
+	P56D=0;
+
 	SubGHz.send(SUBGHZ_PANID,SUBGHZ_TXADDR, (unsigned char *)&tx_data, Print.len(),NULL);
+//	digitalWrite(BLUE_LED,HIGH);
+	P56D=1;
 	sleep(10);
 
 	// Send Sensor Name and dimention of data
 	Print.init(tx_data,sizeof(tx_data));
-	Print.p("SensorList,Gyro,3,");
+	Print.p("SensorList,KX022,3,");
+//	digitalWrite(BLUE_LED,LOW);
+	P56D=0;
+
 	SubGHz.send(SUBGHZ_PANID,SUBGHZ_TXADDR, (unsigned char *)&tx_data, Print.len(),NULL);
-	
+//	digitalWrite(BLUE_LED,HIGH);
+	P56D=1;
+
 	// ########### Change Sub-GHz mode ############
 	// Change Sub-GHz mode to non-ack(AddrMode=4)
 	SubGHz.getSendMode(&param);
@@ -596,8 +630,8 @@ void setup(void)
 	}
 	
 	// ########### set up LED ############
-	digitalWrite(ORANGE_LED,LOW),digitalWrite(BLUE_LED,HIGH);
-	
+//	digitalWrite(ORANGE_LED,LOW),digitalWrite(BLUE_LED,HIGH);
+	P56D=1,P51D=0;
 	// ########### set dummy data ############
 	fly_param.last_recv_time = 0x8000;		// initializing recving time
 	fly_param.led.cycle = 0;
@@ -652,5 +686,6 @@ void loop(void)
 	}
 #endif
 	led_ctrl();
+	wdt_clear();
 }
 
