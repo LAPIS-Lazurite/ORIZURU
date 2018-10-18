@@ -78,8 +78,8 @@ Function:
 #include "crane.h"
 //#################### Definitions ##################################
 // Sub-GHz
-#define SUBGHZ_CH	58
-#define SUBGHZ_PANID	0xF000
+#define SUBGHZ_CH	55
+#define SUBGHZ_PANID	0x2016
 #define SUBGHZ_TXADDR	0x7FAD
 #define SUBGHZ_MYADDRESS 1
 uint8_t rx_data[256];
@@ -898,7 +898,7 @@ void setup(void)
 //	param.addrType = 4;
 //	SubGHz.setSendMode(&param);
 	SubGHz.setAckReq(false);
-	
+	SubGHz.setBroadcastEnb(false);
 	// ########### Enabling RX ############
 	msg = SubGHz.rxEnable(NULL);
 	if(msg != SUBGHZ_OK)

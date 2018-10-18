@@ -5,8 +5,8 @@ unsigned long prev_time;
 
 #define LED				26			// pin number of Blue LED
 #define ORANGE_LED 		25			// pin number of Blue LED
-#define SUBGHZ_CH		58			// channel number (frequency)
-#define PANID			0xF000		// panid
+#define SUBGHZ_CH		55			// channel number (frequency)
+#define PANID			0x2017		// panid
 #define HOST_ADDRESS	0x0001		// distination address
 
 short data_packet[4];
@@ -25,6 +25,7 @@ void setup(void)
 	
 	SubGHz.init();					// initializing Sub-GHz
 	SubGHz.setAckReq(false);
+	SubGHz.setBroadcastEnb(false);
 
 	pinMode(LED,OUTPUT);			// setting of LED
 	pinMode(ORANGE_LED,OUTPUT);			// setting of LED

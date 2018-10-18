@@ -90,8 +90,8 @@ Function:
 #endif
 
 // Sub-GHz
-#define SUBGHZ_CH	58
-#define SUBGHZ_PANID	0xF000
+#define SUBGHZ_CH	55
+#define SUBGHZ_PANID	0x2017
 #define SUBGHZ_TXADDR	0x7FAD
 uint8_t rx_data[256];
 uint8_t tx_data[256];

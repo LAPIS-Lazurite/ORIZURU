@@ -5,9 +5,9 @@ unsigned long prev_time;
 
 #define LED				26			// pin number of Blue LED
 #define ORANGE_LED 		25			// pin number of Blue LED
-#define SUBGHZ_CH		36			// channel number (frequency)
-#define PANID			0xABCD		// panid
-#define HOST_ADDRESS	0x3FF8		// distination address
+#define SUBGHZ_CH		55			// channel number (frequency)
+#define PANID			0x2016		// panid
+#define HOST_ADDRESS	0x1		// distination address
 
 short data_packet[4];
 
